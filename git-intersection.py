@@ -6,7 +6,18 @@ from argparse import RawTextHelpFormatter
 def get_files(hash):
 	return subprocess.check_output([ 'git', 'diff-tree', '--no-commit-id', '--name-only', '-r', hash ], universal_newlines=True).split('\n')
 
-def main(first, second):
+def find_root(first, second):
+	return subprocess.check_output([ 'git', 'merge-base', first, second], universal_newlines=True).strip()
+
+def main(first, second, with_base):
+
+	if with_base:
+		root = find_root(first, second)
+
+		print('Found merge-base: {}\n'.format(root))
+
+		first = '{}..{}'.format(root, first)
+		second = '{}..{}'.format(root, second)
 
 	print('Finding files in {}'.format(first))
 	firstFiles = get_files(first)
@@ -43,10 +54,15 @@ Examples:
 
 		git intersection e9b5c58..master e9b5c58..feat-1234
 
+	Find intersection between two commit ranges without knowing root
+
+		git intersection --with-root master feat-1234
+
 ''')
 
 	parser.add_argument('commits', metavar='COMMIT', nargs=2, help='Commits or commit ranges')
+	parser.add_argument('--with-base', help='Find merge-base of commits and scan ranges', action='store_true')
 
 	args = parser.parse_args()
 
-	main(*args.commits)
+	main(*args.commits, with_base=args.with_base)
